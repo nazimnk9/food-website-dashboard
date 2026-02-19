@@ -43,8 +43,8 @@ export default function CategoriesPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Food Categories</h1>
-                    <p className="text-sm text-gray-600 mt-1">Manage and organize your food items into categories.</p>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">Food Categories</h1>
+                    <p className="text-gray-500 mt-1 font-medium">Manage and organize your food items into categories.</p>
                 </div>
                 <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
                     Add New Category

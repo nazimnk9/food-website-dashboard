@@ -135,7 +135,7 @@ export default function AllMenusPage() {
                             </div>
 
                             {/* Price Bottom Label */}
-                            <div className="absolute bottom-4 left-4">
+                            <div className="absolute bottom-4 right-4">
                                 <span className="text-2xl font-black text-white drop-shadow-lg">
                                     ${item.price.toFixed(2)}
                                 </span>

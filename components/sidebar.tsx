@@ -131,7 +131,7 @@ export default function Sidebar() {
             } lg:translate-x-0 ${isCollapsed ? 'lg:w-24' : 'lg:w-64'}`}
         >
           {/* Logo Section */}
-          <div className={`p-6 border-b border-gray-800 flex items-center justify-center lg:justify-between ${isCollapsed && 'lg:justify-center'}`}>
+          <div className={`p-6 border-b border-white/50 flex items-center justify-center lg:justify-between ${isCollapsed && 'lg:justify-center'}`}>
             <Link href="/dashboard" className={`flex items-center flex-col lg:flex-row ${isCollapsed && 'lg:w-full lg:justify-center'} gap-3`}>
               <div className="relative w-10 h-10 flex-shrink-0">
                 <Image
@@ -170,7 +170,7 @@ export default function Sidebar() {
           {/* Navigation */}
           <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+              const isActive = pathname === item.href
               const hasSubItems = item.subItems && item.subItems.length > 0
               const isExpanded = expandedMenus.includes(item.name)
 
@@ -237,7 +237,7 @@ export default function Sidebar() {
           </nav>
 
           {/* Bottom Navigation */}
-          <div className="px-4 py-4 space-y-2 border-t border-gray-800">
+          <div className="px-4 py-4 space-y-2 border-t border-white/50">
             {/* Settings */}
             <Link
               href="/dashboard/settings"
