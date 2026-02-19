@@ -85,7 +85,7 @@ export default function DashboardLayout({
       <main className="flex-1 w-full">
         {/* Mobile Header - Shows below hamburger menu (Hidden on dashboard as it has custom header) */}
         {pathname !== '/dashboard' && (
-          <div className="lg:hidden bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-30">
+          <div className="lg:hidden bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-30 pt-16 lg:pt-0">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{pageHeader.title}</h1>
             <p className="text-xs sm:text-sm text-gray-600 mt-1">{pageHeader.description}</p>
           </div>
