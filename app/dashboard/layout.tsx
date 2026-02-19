@@ -3,6 +3,7 @@
 import { useEffect, useContext, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Sidebar, { SidebarContext } from '@/components/sidebar'
+import { getCookie } from '@/lib/auth'
 
 export default function DashboardLayout({
   children,
@@ -16,7 +17,9 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isLoggedIn')
-    if (!isLoggedIn) {
+    const hasToken = getCookie('access_token')
+
+    if (!isLoggedIn && !hasToken) {
       router.push('/login')
     }
   }, [router])

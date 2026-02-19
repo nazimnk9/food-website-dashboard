@@ -4,6 +4,17 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useContext, createContext, ReactNode } from 'react'
+import { removeCookie } from '@/lib/auth'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface NavItem {
   name: string
@@ -85,8 +96,15 @@ export default function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['Menu Items'])
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
 
   const handleLogout = () => {
+    setIsLogoutDialogOpen(true)
+  }
+
+  const confirmLogout = () => {
+    removeCookie('access_token')
+    removeCookie('refresh_token')
     localStorage.removeItem('isLoggedIn')
     localStorage.removeItem('userEmail')
     router.push('/login')
@@ -270,6 +288,23 @@ export default function Sidebar() {
 
         {/* Main Content Offset */}
         <div className={`hidden lg:block transition-all duration-300 ${isCollapsed ? 'w-24' : 'w-64'}`} />
+
+        <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You will be redirected to the login page and your current session will be cleared.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmLogout} className="bg-red-600 hover:bg-red-700 text-white cursor-pointer">
+                Logout
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </>
     </SidebarContext.Provider>
   )

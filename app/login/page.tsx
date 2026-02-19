@@ -5,6 +5,16 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { login, setCookie } from '@/lib/auth'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,31 +22,76 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    isSuccess: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    isSuccess: false,
+  })
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
     setIsLoading(true)
 
-    // Simple validation
     if (!email || !password) {
-      setError('Please fill in all fields')
+      setAlertConfig({
+        isOpen: true,
+        title: 'Error',
+        description: 'Please fill in all fields',
+        isSuccess: false,
+      })
       setIsLoading(false)
       return
     }
 
-    // Simulate login - in production, this would call an API
-    setTimeout(() => {
-      if (email && password.length >= 6) {
-        localStorage.setItem('isLoggedIn', 'true')
-        localStorage.setItem('userEmail', email)
-        router.push('/dashboard')
-      } else {
-        setError('Invalid email or password')
+    try {
+      const response = await login({ email, password });
+
+      // Save tokens in cookies
+      setCookie('access_token', response.access);
+      setCookie('refresh_token', response.refresh);
+
+      // Sync with localStorage for existing layout checks
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userEmail', email);
+
+      setAlertConfig({
+        isOpen: true,
+        title: 'Success',
+        description: 'Login successful! Click OK to continue to the dashboard.',
+        isSuccess: true,
+      })
+    } catch (err: any) {
+      let errorMessage = 'An error occurred during sign in.';
+
+      if (err.detail) {
+        errorMessage = err.detail;
+      } else if (err.email || err.password) {
+        errorMessage = Object.values(err).flat().join(' ');
       }
+
+      setAlertConfig({
+        isOpen: true,
+        title: 'Error',
+        description: errorMessage,
+        isSuccess: false,
+      })
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
+  }
+
+  const handleAlertClose = () => {
+    setAlertConfig(prev => ({ ...prev, isOpen: false }))
+    if (alertConfig.isSuccess) {
+      router.push('/dashboard')
+    }
   }
 
   return (
@@ -61,13 +116,6 @@ export default function LoginPage() {
         <p className="text-center text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
           Sign in to manage your restaurant
         </p>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 sm:mb-6 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
-            {error}
-          </div>
-        )}
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
@@ -128,14 +176,21 @@ export default function LoginPage() {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
-
-        {/* Demo Credentials */}
-        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 text-center text-xs sm:text-sm text-gray-600">
-          <p>Demo credentials:</p>
-          <p className="text-xs mt-2">Email: demo@example.com</p>
-          <p className="text-xs">Password: demo123</p>
-        </div>
       </div>
+
+      <AlertDialog open={alertConfig.isOpen} onOpenChange={(open) => !open && handleAlertClose()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertConfig.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertConfig.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleAlertClose}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
