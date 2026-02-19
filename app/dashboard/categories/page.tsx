@@ -314,13 +314,13 @@ export default function CategoriesPage() {
                             <p className="text-sm text-gray-500 line-clamp-2 min-h-[40px] mb-5">
                                 Explore items under {category.title} category.
                             </p>
-                            <div className="grid grid-cols-3 gap-2">
-                                <button className="flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors duration-200 cursor-pointer" title="View Details">
+                            <div className="grid grid-cols-2 gap-2">
+                                {/* <button className="flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors duration-200 cursor-pointer" title="View Details">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
-                                </button>
+                                </button> */}
                                 <button
                                     onClick={() => handleEditCategory(category)}
                                     className="flex items-center justify-center p-2 text-green-600 hover:bg-green-50 border border-green-200 rounded-lg transition-colors duration-200 cursor-pointer"
