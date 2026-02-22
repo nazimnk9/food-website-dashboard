@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { getProducts, createProduct, Product, ProductsResponse, CreateProductData, uploadProductImage, deleteProductImage, getProductImages, ImageUploadResponse } from '@/lib/productService'
+import { getCategories, Category } from '@/lib/categoryService'
+import { getTags, Tag } from '@/lib/tagService'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,13 +30,22 @@ export default function AllMenusPage() {
         title: '',
         price: '',
         description: '',
-        is_popular: false
+        is_popular: false,
+        status: 'active'
     })
 
     // Image Upload State
     const [isUploading, setIsUploading] = useState(false)
     const [previewImages, setPreviewImages] = useState<ImageUploadResponse[]>([])
     const [currentImageIds, setCurrentImageIds] = useState<number[]>([])
+
+    // Category State
+    const [categories, setCategories] = useState<Category[]>([])
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
+
+    // Tag State
+    const [tags, setTags] = useState<Tag[]>([])
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
 
     // Alert Dialog State
     const [alertConfig, setAlertConfig] = useState({
@@ -68,14 +79,45 @@ export default function AllMenusPage() {
         }
     }
 
+    const fetchCategories = async () => {
+        try {
+            const data = await getCategories()
+            setCategories(data.results)
+        } catch (err) {
+            console.error('Error fetching categories:', err)
+        }
+    }
+
+    const fetchTags = async () => {
+        try {
+            const data = await getTags()
+            setTags(data.results)
+        } catch (err) {
+            console.error('Error fetching tags:', err)
+        }
+    }
+
     useEffect(() => {
         fetchProducts(currentPage)
         // Load IDs from local storage
-        const savedIds = localStorage.getItem('pending_image_ids')
-        if (savedIds) {
-            setCurrentImageIds(JSON.parse(savedIds))
+        const savedImageIds = localStorage.getItem('pending_image_ids')
+        if (savedImageIds) {
+            setCurrentImageIds(JSON.parse(savedImageIds))
         }
+
+        const savedCategoryIds = localStorage.getItem('pending_category_ids')
+        if (savedCategoryIds) {
+            setSelectedCategoryIds(JSON.parse(savedCategoryIds))
+        }
+
+        const savedTagIds = localStorage.getItem('pending_tag_ids')
+        if (savedTagIds) {
+            setSelectedTagIds(JSON.parse(savedTagIds))
+        }
+
         fetchPreviewImages()
+        fetchCategories()
+        fetchTags()
     }, [currentPage])
 
     const totalPages = Math.ceil(totalCount / itemsPerPage)
@@ -155,7 +197,9 @@ export default function AllMenusPage() {
             await createProduct({
                 ...formData,
                 price: formData.price ? formData.price.toString() : null,
-                images_ids: currentImageIds
+                images_ids: currentImageIds,
+                category_ids: selectedCategoryIds,
+                tags_ids: selectedTagIds
             })
 
             setAlertConfig({
@@ -170,11 +214,16 @@ export default function AllMenusPage() {
                 title: '',
                 price: '',
                 description: '',
-                is_popular: false
+                is_popular: false,
+                status: 'active'
             })
             // Clear IDs
             setCurrentImageIds([])
+            setSelectedCategoryIds([])
+            setSelectedTagIds([])
             localStorage.removeItem('pending_image_ids')
+            localStorage.removeItem('pending_category_ids')
+            localStorage.removeItem('pending_tag_ids')
             fetchProducts(currentPage)
         } catch (err: any) {
             console.error('Error creating product:', err)
@@ -267,19 +316,50 @@ export default function AllMenusPage() {
                                     {/* Overlay Blur for Status */}
                                     {/* <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" /> */}
 
-                                    {/* Tags */}
-                                    <div className="absolute top-4 left-4 flex flex-col gap-2">
-                                        {item.category && item.category.length > 0 && (
-                                            <span className="bg-white/90 backdrop-blur-md text-gray-900 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
-                                                {item.category[0].title}
+                                    {/* Badges */}
+                                    <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                                        {/* Status Badge */}
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm backdrop-blur-md transition-all duration-300 ${item.status === 'active'
+                                            ? 'bg-green-500/90 text-white border border-green-400/50'
+                                            : 'bg-red-500/90 text-white border border-red-400/50'
+                                            }`}>
+                                            {item.status === 'active' ? 'Active' : 'Inactive'}
+                                        </span>
+
+                                        {/* Popular Badge */}
+                                        {item.is_popular && (
+                                            <span className="bg-yellow-500/90 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border border-yellow-400/50 backdrop-blur-md">
+                                                Popular
                                             </span>
                                         )}
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${item.is_popular
-                                            ? 'bg-yellow-500 text-white'
-                                            : 'bg-green-500 text-white'
-                                            }`}>
-                                            {item.is_popular ? 'Popular' : 'In Stock'}
-                                        </span>
+                                    </div>
+
+                                    {/* Categories & Tags Grid (Overlay on Image Hover) */}
+                                    <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center p-6 space-y-4">
+                                        {item.category && item.category.length > 0 && (
+                                            <div className='mt-8'>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Categories</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {item.category.map(cat => (
+                                                        <span key={cat.id} className="bg-white/20 text-white px-2 py-1 rounded-lg text-[10px] font-bold border border-white/10">
+                                                            {cat.title}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {item.tags && item.tags.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Tags</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {item.tags.map(tag => (
+                                                        <span key={tag.id} className="bg-blue-500/40 text-blue-100 px-2 py-1 rounded-lg text-[10px] font-bold border border-blue-400/20">
+                                                            {tag.title}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Price Bottom Label */}
@@ -461,6 +541,77 @@ export default function AllMenusPage() {
                                             {formData.is_popular ? 'Yes' : 'No'}
                                         </span>
                                     </div>
+                                </div>
+                                <div className="flex flex-col justify-center gap-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Stock status (On/Off)</label>
+                                    <div className="flex items-center gap-3 ml-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, status: formData.status === 'active' ? 'inactive' : 'active' })}
+                                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${formData.status === 'active' ? 'bg-green-600' : 'bg-gray-200'
+                                                }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-300 shadow-sm ${formData.status === 'active' ? 'translate-x-[1.65rem]' : 'translate-x-1'
+                                                    }`}
+                                            />
+                                        </button>
+                                        <span className={`text-sm font-black uppercase tracking-wider ${formData.status === 'active' ? 'text-green-600' : 'text-gray-400'}`}>
+                                            {formData.status === 'active' ? 'On' : 'Off'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Categories (Select Multiple)</label>
+                                <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-4 bg-gray-50 rounded-2xl custom-scrollbar border-2 border-transparent focus-within:border-blue-500 transition-all duration-200">
+                                    {categories.map((category) => (
+                                        <label key={category.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl cursor-pointer transition-all duration-200 group">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                checked={selectedCategoryIds.includes(category.id)}
+                                                onChange={(e) => {
+                                                    let newIds;
+                                                    if (e.target.checked) {
+                                                        newIds = [...selectedCategoryIds, category.id];
+                                                    } else {
+                                                        newIds = selectedCategoryIds.filter(id => id !== category.id);
+                                                    }
+                                                    setSelectedCategoryIds(newIds);
+                                                    localStorage.setItem('pending_category_ids', JSON.stringify(newIds));
+                                                }}
+                                            />
+                                            <span className="text-sm font-bold text-gray-700 group-hover:text-blue-600 transition-colors">{category.title}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Tags (Select Multiple)</label>
+                                <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-4 bg-gray-50 rounded-2xl custom-scrollbar border-2 border-transparent focus-within:border-blue-500 transition-all duration-200">
+                                    {tags.map((tag) => (
+                                        <label key={tag.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl cursor-pointer transition-all duration-200 group">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                checked={selectedTagIds.includes(tag.id)}
+                                                onChange={(e) => {
+                                                    let newIds;
+                                                    if (e.target.checked) {
+                                                        newIds = [...selectedTagIds, tag.id];
+                                                    } else {
+                                                        newIds = selectedTagIds.filter(id => id !== tag.id);
+                                                    }
+                                                    setSelectedTagIds(newIds);
+                                                    localStorage.setItem('pending_tag_ids', JSON.stringify(newIds));
+                                                }}
+                                            />
+                                            <span className="text-sm font-bold text-gray-700 group-hover:text-blue-600 transition-colors">{tag.title}</span>
+                                        </label>
+                                    ))}
                                 </div>
                             </div>
 

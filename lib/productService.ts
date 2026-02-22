@@ -15,17 +15,19 @@ export interface ProductImage {
     updated_at: string;
 }
 
+import { Tag } from './tagService';
 export interface Product {
     id: number;
     category: Category[];
     images: ProductImage[];
-    tags: any[];
+    tags: Tag[];
     title: string;
     price: string;
     description: string;
     is_popular: boolean;
     created_at: string;
     updated_at: string;
+    status: string;
 }
 
 export interface ProductsResponse {
@@ -41,6 +43,9 @@ export interface CreateProductData {
     description: string;
     is_popular: boolean;
     images_ids?: number[];
+    category_ids?: number[];
+    tags_ids?: number[];
+    status?: string | null;
 }
 
 export const getProducts = async (page: number = 1): Promise<ProductsResponse> => {
