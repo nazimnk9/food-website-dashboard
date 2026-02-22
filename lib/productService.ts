@@ -140,3 +140,21 @@ export const getProductImages = async (): Promise<ImagesListResponse> => {
 
     return response.json();
 };
+
+export const getProductById = async (id: number | string): Promise<Product> => {
+    const accessToken = getCookie('access_token');
+    const response = await fetch(`${BASE_URL}/menu/products/${id}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+        },
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw error;
+    }
+
+    return response.json();
+};

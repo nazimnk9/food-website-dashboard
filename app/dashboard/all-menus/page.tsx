@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
 import { getProducts, createProduct, Product, ProductsResponse, CreateProductData, uploadProductImage, deleteProductImage, getProductImages, ImageUploadResponse } from '@/lib/productService'
 import { getCategories, Category } from '@/lib/categoryService'
@@ -375,19 +376,21 @@ export default function AllMenusPage() {
                                     <h3 className="text-xl font-black text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors duration-200">
                                         {item.title}
                                     </h3>
-                                    <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed h-[40px] mb-6">
+                                    <p className="text-sm text-gray-500 truncate leading-relaxed h-[40px] mb-6">
                                         {item.description}
                                     </p>
 
                                     {/* Action Buttons */}
                                     <div className="grid grid-cols-3 gap-3">
-                                        <button className="flex flex-col items-center justify-center p-3 text-blue-600 hover:bg-blue-600 hover:text-white border-2 border-blue-50 rounded-2xl transition-all duration-300 group/btn" title="View Details">
-                                            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Details</span>
-                                        </button>
+                                        <Link href={`/dashboard/all-menus/${item.id}`}>
+                                            <button className="flex flex-col items-center justify-center p-3 text-blue-600 hover:bg-blue-600 hover:text-white border-2 border-blue-50 rounded-2xl transition-all duration-300 group/btn w-full" title="View Details">
+                                                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Details</span>
+                                            </button>
+                                        </Link>
                                         <button className="flex flex-col items-center justify-center p-3 text-green-600 hover:bg-green-600 hover:text-white border-2 border-green-50 rounded-2xl transition-all duration-300 group/btn" title="Edit Item">
                                             <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
