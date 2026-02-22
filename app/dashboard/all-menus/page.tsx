@@ -3,7 +3,20 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { getProducts, createProduct, updateProduct, getProductById, Product, ProductsResponse, CreateProductData, uploadProductImage, deleteProductImage, getProductImages, ImageUploadResponse } from '@/lib/productService'
+import {
+    getProducts,
+    createProduct,
+    uploadProductImage,
+    deleteProductImage,
+    getProductImages,
+    getProductById,
+    updateProduct,
+    deleteProduct,
+    Product,
+    ProductsResponse,
+    CreateProductData,
+    ImageUploadResponse
+} from '@/lib/productService'
 import { getCategories, Category } from '@/lib/categoryService'
 import { getTags, Tag } from '@/lib/tagService'
 import {
@@ -63,6 +76,11 @@ export default function AllMenusPage() {
     const [updateSelectedCategoryIds, setUpdateSelectedCategoryIds] = useState<number[]>([])
     const [updateSelectedTagIds, setUpdateSelectedTagIds] = useState<number[]>([])
     const [updateCurrentImageIds, setUpdateCurrentImageIds] = useState<number[]>([])
+
+    // Delete Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [productToDeleteId, setProductToDeleteId] = useState<number | null>(null)
+    const [isDeletingProduct, setIsDeletingProduct] = useState(false)
 
     // Alert Dialog State
     const [alertConfig, setAlertConfig] = useState({
@@ -406,6 +424,38 @@ export default function AllMenusPage() {
         }
     }
 
+    const handleDeleteClick = (productId: number) => {
+        setProductToDeleteId(productId)
+        setIsDeleteModalOpen(true)
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!productToDeleteId) return
+        setIsDeletingProduct(true)
+        try {
+            await deleteProduct(productToDeleteId)
+            setAlertConfig({
+                isOpen: true,
+                title: 'Deleted',
+                description: 'Product has been deleted successfully.',
+                isSuccess: true,
+            })
+            setIsDeleteModalOpen(false)
+            fetchProducts(currentPage)
+        } catch (err: any) {
+            console.error('Delete error:', err)
+            setAlertConfig({
+                isOpen: true,
+                title: 'Delete Error',
+                description: err.detail || 'Failed to delete product. Please try again.',
+                isSuccess: false,
+            })
+        } finally {
+            setIsDeletingProduct(false)
+            setProductToDeleteId(null)
+        }
+    }
+
     return (
         <div className="space-y-8">
             {/* Header Section */}
@@ -455,7 +505,7 @@ export default function AllMenusPage() {
                                 className="group bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 ease-out"
                             >
                                 {/* Image Container */}
-                                <div className="relative h-64 w-full overflow-hidden bg-gray-100">
+                                <div className="relative h-76 w-full overflow-hidden bg-gray-100">
                                     {item.images && item.images.length > 0 ? (
                                         <Image
                                             src={item.images[0].image}
@@ -555,7 +605,11 @@ export default function AllMenusPage() {
                                             </svg>
                                             <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Edit</span>
                                         </button>
-                                        <button className="flex flex-col items-center justify-center p-3 text-red-600 hover:bg-red-600 hover:text-white border-2 border-red-50 rounded-2xl transition-all duration-300 group/btn" title="Delete Item">
+                                        <button
+                                            onClick={() => handleDeleteClick(item.id)}
+                                            className="flex flex-col items-center justify-center p-3 text-red-600 hover:bg-red-600 hover:text-white border-2 border-red-50 rounded-2xl transition-all duration-300 group/btn"
+                                            title="Delete Item"
+                                        >
                                             <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
@@ -1070,6 +1124,39 @@ export default function AllMenusPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="p-8 text-center">
+                            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-900 mb-2">Are you sure?</h3>
+                            <p className="text-gray-500 font-medium">This action cannot be undone. This will permanently delete the signature dish.</p>
+                        </div>
+                        <div className="flex border-t border-gray-100">
+                            <button
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="flex-1 px-6 py-4 text-gray-400 font-black uppercase tracking-widest text-xs hover:bg-gray-50 transition-colors border-r border-gray-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmDelete}
+                                disabled={isDeletingProduct}
+                                className="flex-1 px-6 py-4 text-red-600 font-black uppercase tracking-widest text-xs hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {isDeletingProduct && <div className="w-4 h-4 border-2 border-red-200 border-t-red-600 rounded-full animate-spin" />}
+                                {isDeletingProduct ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

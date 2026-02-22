@@ -176,3 +176,18 @@ export const updateProduct = async (id: number | string, data: CreateProductData
 
     return response.json();
 };
+
+export const deleteProduct = async (id: number | string): Promise<void> => {
+    const accessToken = getCookie('access_token');
+    const response = await fetch(`${BASE_URL}/menu/products/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+        },
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw error;
+    }
+};
