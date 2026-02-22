@@ -69,7 +69,7 @@ export default function DashboardPage() {
             Welcome back, <span className="text-blue-600 font-bold">{userEmail.split('@')[0]}</span>! Here&apos;s what&apos;s happening today.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        {/* <div className="flex items-center gap-3">
           <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-600">
             <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -81,11 +81,11 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="TOTAL REVENUE"
           value="$12,845.00"
@@ -96,7 +96,7 @@ export default function DashboardPage() {
           }
           bgColor="bg-gradient-to-br from-blue-600 to-blue-700"
           textColor="text-white"
-          trend="12.5%"
+          //trend="12.5%"
           trendPositive={true}
         />
         <StatCard
@@ -109,7 +109,7 @@ export default function DashboardPage() {
           }
           bgColor="bg-gradient-to-br from-indigo-600 to-indigo-700"
           textColor="text-white"
-          trend="8.2%"
+          //trend="8.2%"
           trendPositive={true}
         />
         <StatCard
@@ -122,10 +122,10 @@ export default function DashboardPage() {
           }
           bgColor="bg-gradient-to-br from-emerald-600 to-emerald-700"
           textColor="text-white"
-          trend="4.1%"
+          //trend="4.1%"
           trendPositive={true}
         />
-        <StatCard
+        {/* <StatCard
           title="HAPPY CUSTOMERS"
           value="8.5k"
           icon={
@@ -135,15 +135,15 @@ export default function DashboardPage() {
           }
           bgColor="bg-gradient-to-br from-rose-600 to-rose-700"
           textColor="text-white"
-          trend="15%"
+          //trend="15%"
           trendPositive={true}
-        />
+        /> */}
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Revenue Chart */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+        {/* <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-xl font-black text-gray-900">Revenue Overview</h2>
@@ -187,10 +187,10 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </div> */}
 
         {/* Orders Trend Chart */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+        {/* <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-xl font-black text-gray-900">Weekly Orders</h2>
@@ -238,7 +238,7 @@ export default function DashboardPage() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </div> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

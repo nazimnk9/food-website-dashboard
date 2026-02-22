@@ -144,7 +144,7 @@ export default function ProductDetailPage() {
                             <>
                                 <button
                                     onClick={handlePrev}
-                                    className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-3 rounded-2xl transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 border border-white/30"
+                                    className="absolute left-6 top-1/2 -translate-y-1/2 bg-blue-600/50 hover:bg-blue-600/70 backdrop-blur-md text-white p-3 rounded-2xl transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 border border-white/30"
                                 >
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
@@ -152,7 +152,7 @@ export default function ProductDetailPage() {
                                 </button>
                                 <button
                                     onClick={handleNext}
-                                    className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-3 rounded-2xl transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 border border-white/30"
+                                    className="absolute right-6 top-1/2 -translate-y-1/2 bg-blue-600/50 hover:bg-blue-600/70 backdrop-blur-md text-white p-3 rounded-2xl transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 border border-white/30"
                                 >
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
