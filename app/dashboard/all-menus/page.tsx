@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { getProducts, createProduct, Product, ProductsResponse, CreateProductData, uploadProductImage, deleteProductImage, getProductImages, ImageUploadResponse } from '@/lib/productService'
+import { getProducts, createProduct, updateProduct, getProductById, Product, ProductsResponse, CreateProductData, uploadProductImage, deleteProductImage, getProductImages, ImageUploadResponse } from '@/lib/productService'
 import { getCategories, Category } from '@/lib/categoryService'
 import { getTags, Tag } from '@/lib/tagService'
 import {
@@ -47,6 +47,22 @@ export default function AllMenusPage() {
     // Tag State
     const [tags, setTags] = useState<Tag[]>([])
     const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+
+    // Update Modal State
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const [isUpdatingProduct, setIsUpdatingProduct] = useState(false)
+    const [isUpdatingImage, setIsUpdatingImage] = useState(false)
+    const [editingProductId, setEditingProductId] = useState<number | null>(null)
+    const [updateFormData, setUpdateFormData] = useState<CreateProductData>({
+        title: '',
+        price: '',
+        description: '',
+        is_popular: false,
+        status: 'active'
+    })
+    const [updateSelectedCategoryIds, setUpdateSelectedCategoryIds] = useState<number[]>([])
+    const [updateSelectedTagIds, setUpdateSelectedTagIds] = useState<number[]>([])
+    const [updateCurrentImageIds, setUpdateCurrentImageIds] = useState<number[]>([])
 
     // Alert Dialog State
     const [alertConfig, setAlertConfig] = useState({
@@ -252,6 +268,144 @@ export default function AllMenusPage() {
         }
     }
 
+    const handleUpdateImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files
+        if (!files || files.length === 0) return
+
+        setIsUpdatingImage(true)
+        const newIds = [...updateCurrentImageIds]
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const response = await uploadProductImage(files[i])
+                newIds.push(response.id)
+                setPreviewImages(prev => [...prev, response])
+            }
+            setUpdateCurrentImageIds(newIds)
+        } catch (err: any) {
+            console.error('Update upload error:', err)
+            setAlertConfig({
+                isOpen: true,
+                title: 'Upload Error',
+                description: err.detail || 'Failed to upload images.',
+                isSuccess: false,
+            })
+        } finally {
+            setIsUpdatingImage(false)
+            e.target.value = ''
+        }
+    }
+
+    const handleUpdateDeleteImage = async (id: number) => {
+        try {
+            await deleteProductImage(id)
+            setUpdateCurrentImageIds(prev => prev.filter(itemId => itemId !== id))
+            setPreviewImages(prev => prev.filter(img => img.id !== id))
+        } catch (err: any) {
+            console.error('Update delete error:', err)
+            setAlertConfig({
+                isOpen: true,
+                title: 'Delete Error',
+                description: err.detail || 'Failed to delete image.',
+                isSuccess: false,
+            })
+        }
+    }
+
+    const handleEditClick = async (productId: number) => {
+        setEditingProductId(productId)
+        try {
+            const product = await getProductById(productId)
+            setUpdateFormData({
+                title: product.title,
+                price: product.price,
+                description: product.description,
+                is_popular: product.is_popular,
+                status: product.status
+            })
+            setUpdateSelectedCategoryIds(product.category.map(cat => cat.id))
+            setUpdateSelectedTagIds(product.tags.map(tag => tag.id))
+            setUpdateCurrentImageIds(product.images.map(img => img.id))
+
+            // First ensure global images are loaded for selection
+            await fetchPreviewImages()
+
+            // Then ensure product's specific images are merged into the preview state
+            // so they definitely show up even if they aren't in the initial page of global images
+            setPreviewImages(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                const newImages = product.images
+                    .filter(img => !existingIds.has(img.id))
+                    .map(img => ({
+                        id: img.id,
+                        image: img.image,
+                        created_at: img.created_at,
+                        updated_at: img.updated_at
+                    }));
+                return [...prev, ...newImages];
+            });
+
+            setIsUpdateModalOpen(true)
+        } catch (err) {
+            console.error('Error fetching product for edit:', err)
+            setAlertConfig({
+                isOpen: true,
+                title: 'Error',
+                description: 'Failed to fetch product details for editing.',
+                isSuccess: false,
+            })
+        }
+    }
+
+    const handleUpdateMenu = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingProductId) return
+        setIsUpdatingProduct(true)
+
+        try {
+            await updateProduct(editingProductId, {
+                ...updateFormData,
+                price: updateFormData.price ? updateFormData.price.toString() : null,
+                images_ids: updateCurrentImageIds,
+                category_ids: updateSelectedCategoryIds,
+                tags_ids: updateSelectedTagIds,
+                status: updateFormData.status
+            })
+
+            setAlertConfig({
+                isOpen: true,
+                title: 'Success',
+                description: 'Menu item updated successfully!',
+                isSuccess: true,
+            })
+
+            setIsUpdateModalOpen(false)
+            fetchProducts(currentPage)
+        } catch (err: any) {
+            console.error('Update error:', err)
+            let errorMessage = 'Failed to update menu item.'
+            if (typeof err === 'object' && err !== null) {
+                if (err.detail) {
+                    errorMessage = err.detail
+                } else {
+                    const errors = []
+                    for (const [key, value] of Object.entries(err)) {
+                        errors.push(`${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                    }
+                    if (errors.length > 0) errorMessage = errors.join('\n')
+                }
+            }
+            setAlertConfig({
+                isOpen: true,
+                title: 'Error',
+                description: errorMessage,
+                isSuccess: false,
+            })
+        } finally {
+            setIsUpdatingProduct(false)
+        }
+    }
+
     return (
         <div className="space-y-8">
             {/* Header Section */}
@@ -391,7 +545,11 @@ export default function AllMenusPage() {
                                                 <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Details</span>
                                             </button>
                                         </Link>
-                                        <button className="flex flex-col items-center justify-center p-3 text-green-600 hover:bg-green-600 hover:text-white border-2 border-green-50 rounded-2xl transition-all duration-300 group/btn" title="Edit Item">
+                                        <button
+                                            onClick={() => handleEditClick(item.id)}
+                                            className="flex flex-col items-center justify-center p-3 text-green-600 hover:bg-green-600 hover:text-white border-2 border-green-50 rounded-2xl transition-all duration-300 group/btn"
+                                            title="Edit Item"
+                                        >
                                             <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
@@ -694,6 +852,221 @@ export default function AllMenusPage() {
                                 >
                                     {isCreating && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                                     {isCreating ? 'Creating...' : 'Create Menu'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* Update Menu Modal */}
+            {isUpdateModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                        {/* Modal Header */}
+                        <div className="px-8 pt-8 pb-4 flex justify-between items-center bg-gradient-to-r from-green-50/50 to-transparent">
+                            <div>
+                                <h2 className="text-2xl font-black text-gray-900">Update Menu</h2>
+                                <p className="text-gray-500 text-sm font-medium mt-1">Refine your dish details and presentation.</p>
+                            </div>
+                            <button
+                                onClick={() => setIsUpdateModalOpen(false)}
+                                className="p-2 hover:bg-white rounded-2xl transition-colors shadow-sm border border-gray-100 group"
+                            >
+                                <svg className="w-6 h-6 text-gray-400 group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <form onSubmit={handleUpdateMenu} className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
+                            <div className="space-y-1">
+                                <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Dish Title</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. Traditional Beef Biryani"
+                                    className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent focus:border-green-500 focus:bg-white rounded-2xl text-gray-900 font-bold placeholder:text-gray-300 outline-none transition-all duration-200"
+                                    value={updateFormData.title}
+                                    onChange={(e) => setUpdateFormData({ ...updateFormData, title: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Price ($)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                        placeholder="0.00"
+                                        className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent focus:border-green-500 focus:bg-white rounded-2xl text-gray-900 font-bold placeholder:text-gray-300 outline-none transition-all duration-200"
+                                        value={updateFormData.price || ''}
+                                        onChange={(e) => setUpdateFormData({ ...updateFormData, price: e.target.value })}
+                                    />
+                                </div>
+                                <div className="flex flex-col justify-center gap-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Popular Choice?</label>
+                                    <div className="flex items-center gap-3 ml-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setUpdateFormData({ ...updateFormData, is_popular: !updateFormData.is_popular })}
+                                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${updateFormData.is_popular ? 'bg-blue-600' : 'bg-gray-200'
+                                                }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-300 shadow-sm ${updateFormData.is_popular ? 'translate-x-[1.65rem]' : 'translate-x-1'
+                                                    }`}
+                                            />
+                                        </button>
+                                        <span className={`text-sm font-black uppercase tracking-wider ${updateFormData.is_popular ? 'text-blue-600' : 'text-gray-400'}`}>
+                                            {updateFormData.is_popular ? 'Yes' : 'No'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col justify-center gap-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Stock status (On/Off)</label>
+                                    <div className="flex items-center gap-3 ml-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setUpdateFormData({ ...updateFormData, status: updateFormData.status === 'active' ? 'inactive' : 'active' })}
+                                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${updateFormData.status === 'active' ? 'bg-green-600' : 'bg-gray-200'
+                                                }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-300 shadow-sm ${updateFormData.status === 'active' ? 'translate-x-[1.65rem]' : 'translate-x-1'
+                                                    }`}
+                                            />
+                                        </button>
+                                        <span className={`text-sm font-black uppercase tracking-wider ${updateFormData.status === 'active' ? 'text-green-600' : 'text-gray-400'}`}>
+                                            {updateFormData.status === 'active' ? 'On' : 'Off'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Categories (Select Multiple)</label>
+                                <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-4 bg-gray-50 rounded-2xl custom-scrollbar border-2 border-transparent focus-within:border-green-500 transition-all duration-200">
+                                    {categories.map((category) => (
+                                        <label key={category.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl cursor-pointer transition-all duration-200 group">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                checked={updateSelectedCategoryIds.includes(category.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setUpdateSelectedCategoryIds([...updateSelectedCategoryIds, category.id]);
+                                                    } else {
+                                                        setUpdateSelectedCategoryIds(updateSelectedCategoryIds.filter(id => id !== category.id));
+                                                    }
+                                                }}
+                                            />
+                                            <span className="text-sm font-bold text-gray-700 group-hover:text-blue-600 transition-colors">{category.title}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Tags (Select Multiple)</label>
+                                <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-4 bg-gray-50 rounded-2xl custom-scrollbar border-2 border-transparent focus-within:border-green-500 transition-all duration-200">
+                                    {tags.map((tag) => (
+                                        <label key={tag.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl cursor-pointer transition-all duration-200 group">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                checked={updateSelectedTagIds.includes(tag.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setUpdateSelectedTagIds([...updateSelectedTagIds, tag.id]);
+                                                    } else {
+                                                        setUpdateSelectedTagIds(updateSelectedTagIds.filter(id => id !== tag.id));
+                                                    }
+                                                }}
+                                            />
+                                            <span className="text-sm font-bold text-gray-700 group-hover:text-blue-600 transition-colors">{tag.title}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Dish Images</label>
+                                <div className="mt-2 flex flex-wrap gap-4">
+                                    <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-200 rounded-2xl cursor-pointer hover:border-green-500 hover:bg-green-50 transition-all duration-200 group">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            {isUpdatingImage ? (
+                                                <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <svg className="w-6 h-6 text-gray-400 group-hover:text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            multiple
+                                            accept="image/*"
+                                            onChange={handleUpdateImageUpload}
+                                            disabled={isUpdatingImage}
+                                        />
+                                    </label>
+
+                                    {previewImages
+                                        .filter(img => updateCurrentImageIds.includes(img.id))
+                                        .map((img) => (
+                                            <div key={img.id} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-gray-100 shadow-sm group">
+                                                <Image
+                                                    src={img.image}
+                                                    alt="Preview"
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUpdateDeleteImage(img.id)}
+                                                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-lg opacity-100 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
+                                                >
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ))
+                                    }
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Description</label>
+                                <textarea
+                                    required
+                                    rows={3}
+                                    placeholder="Describe the flavors, ingredients, and soul of the dish..."
+                                    className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent focus:border-green-500 focus:bg-white rounded-2xl text-gray-900 font-bold placeholder:text-gray-300 outline-none transition-all duration-200 resize-none"
+                                    value={updateFormData.description}
+                                    onChange={(e) => setUpdateFormData({ ...updateFormData, description: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsUpdateModalOpen(false)}
+                                    className="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black uppercase tracking-widest text-xs rounded-2xl transition-all duration-200"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isUpdatingProduct}
+                                    className="flex-[2] px-6 py-4 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-green-600/20 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isUpdatingProduct && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                    {isUpdatingProduct ? 'Updating...' : 'Update Menu'}
                                 </button>
                             </div>
                         </form>

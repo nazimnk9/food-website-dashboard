@@ -158,3 +158,21 @@ export const getProductById = async (id: number | string): Promise<Product> => {
 
     return response.json();
 };
+export const updateProduct = async (id: number | string, data: CreateProductData): Promise<Product> => {
+    const accessToken = getCookie('access_token');
+    const response = await fetch(`${BASE_URL}/menu/products/${id}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw error;
+    }
+
+    return response.json();
+};
