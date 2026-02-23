@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { getOrders, updateOrderStatus, Order, OrderItem } from '@/lib/orderService'
 import {
     Dialog,
@@ -223,119 +223,143 @@ export default function OrdersPage() {
                                 </tr>
                             ) : (
                                 orders.map((order) => (
-                                    <tr key={order.id} className="group hover:bg-blue-50/30 transition-all duration-300">
-                                        <td className="px-8 py-8">
-                                            <div className="flex flex-col">
-                                                <span className="text-lg font-black text-gray-900 tracking-tight leading-none mb-2 group-hover:text-blue-600 transition-colors">
-                                                    #ORD-{order.id}
-                                                </span>
-                                                <span className="text-xs font-bold text-gray-400 tabular-nums uppercase tracking-wider">
-                                                    {formatDate(order.created_at)}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8">
-                                            <div className="flex flex-col gap-1.5">
-                                                <div className="flex -space-x-2 overflow-hidden mb-1">
-                                                    {order.items.slice(0, 3).map((item, idx) => (
-                                                        <div key={idx} className="relative w-8 h-8 rounded-full border-2 border-white bg-gray-100 overflow-hidden shadow-sm">
-                                                            <Image
-                                                                src={item.product?.images?.[0]?.image || '/placeholder-food.jpg'}
-                                                                alt={item.product?.title}
-                                                                fill
-                                                                className="object-cover"
-                                                            />
+                                    <React.Fragment key={order.id}>
+                                        <tr className="group hover:bg-blue-50/30 transition-all duration-300">
+                                            <td className="px-8 py-8">
+                                                <div className="flex flex-col">
+                                                    <span className="text-lg font-black text-gray-900 tracking-tight leading-none mb-2 group-hover:text-blue-600 transition-colors">
+                                                        #ORD-{order.id}
+                                                    </span>
+                                                    <span className="text-xs font-bold text-gray-400 tabular-nums uppercase tracking-wider">
+                                                        {formatDate(order.created_at)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-8">
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="flex -space-x-2 overflow-hidden mb-1">
+                                                        {order.items.slice(0, 3).map((item, idx) => (
+                                                            <div key={idx} className="relative w-8 h-8 rounded-full border-2 border-white bg-gray-100 overflow-hidden shadow-sm">
+                                                                <Image
+                                                                    src={item.product?.images?.[0]?.image || '/placeholder-food.jpg'}
+                                                                    alt={item.product?.title}
+                                                                    fill
+                                                                    className="object-cover"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                        {order.items.length > 3 && (
+                                                            <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-blue-600">
+                                                                +{order.items.length - 3}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm text-gray-600 font-medium truncate max-w-[200px]">
+                                                        {order.items.map(i => i.product?.title || 'Unknown Product').join(', ')}
+                                                    </p>
+                                                    <span className="text-blue-600 font-black text-lg tabular-nums">
+                                                        ${parseFloat(order.total_amount).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-8">
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center">
+                                                            <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                                            </svg>
                                                         </div>
-                                                    ))}
-                                                    {order.items.length > 3 && (
-                                                        <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-blue-600">
-                                                            +{order.items.length - 3}
+                                                        <span className="font-bold text-gray-700 text-sm">Customer #{order.user || 'Guest'}</span>
+                                                    </div>
+                                                    {order.address ? (
+                                                        <div className="flex items-start gap-2 max-w-[220px]">
+                                                            <svg className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            </svg>
+                                                            <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                                                                {order.address.street}, {order.address.city}
+                                                            </p>
                                                         </div>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-300 italic font-medium">No address provided</span>
                                                     )}
                                                 </div>
-                                                <p className="text-sm text-gray-600 font-medium truncate max-w-[200px]">
-                                                    {order.items.map(i => i.product?.title || 'Unknown Product').join(', ')}
-                                                </p>
-                                                <span className="text-blue-600 font-black text-lg tabular-nums">
-                                                    ${parseFloat(order.total_amount).toFixed(2)}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8">
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center">
-                                                        <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                                        </svg>
-                                                    </div>
-                                                    <span className="font-bold text-gray-700 text-sm">Customer #{order.user || 'Guest'}</span>
+                                            </td>
+                                            <td className="px-8 py-8">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`inline-flex w-fit px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${order.payment_type === 'online' ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                        {order.payment_type}
+                                                    </span>
+                                                    {/* {order.transaction_id && (
+                                                        <span className="text-[10px] font-bold text-gray-400 tabular-nums">
+                                                            ID: #{order.transaction_id}
+                                                        </span>
+                                                    )} */}
                                                 </div>
-                                                {order.address ? (
-                                                    <div className="flex items-start gap-2 max-w-[220px]">
-                                                        <svg className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        </svg>
-                                                        <p className="text-xs text-gray-400 font-medium leading-relaxed">
-                                                            {order.address.street}, {order.address.city}
-                                                        </p>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs text-gray-300 italic font-medium">No address provided</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8">
-                                            <div className="flex flex-col gap-1">
-                                                <span className={`inline-flex w-fit px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${order.payment_type === 'online' ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
-                                                    {order.payment_type}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8">
-                                            <div className="flex items-center gap-3">
-                                                <select
-                                                    value={order.status}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        if (val === 'cancelled') {
-                                                            setOrderToCancel(order.id);
-                                                            setCancellationReason('');
-                                                            setIsCancellationModalOpen(true);
-                                                        } else {
-                                                            handleStatusChange(order.id, val);
-                                                        }
-                                                    }}
-                                                    disabled={isUpdatingStatus === order.id}
-                                                    className={`appearance-none px-4 py-2 pr-10 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all outline-none cursor-pointer disabled:opacity-50 disabled:cursor-wait ${getStatusStyles(order.status)}`}
-                                                    style={{
-                                                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                                                        backgroundRepeat: 'no-repeat',
-                                                        backgroundPosition: 'right 12px center',
-                                                        backgroundSize: '12px'
-                                                    }}
+                                            </td>
+                                            <td className="px-8 py-8">
+                                                <div className="flex items-center gap-3">
+                                                    <select
+                                                        value={order.status}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === 'cancelled') {
+                                                                setOrderToCancel(order.id);
+                                                                setCancellationReason('');
+                                                                setIsCancellationModalOpen(true);
+                                                            } else {
+                                                                handleStatusChange(order.id, val);
+                                                            }
+                                                        }}
+                                                        disabled={isUpdatingStatus === order.id}
+                                                        className={`appearance-none px-4 py-2 pr-10 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all outline-none cursor-pointer disabled:opacity-50 disabled:cursor-wait ${getStatusStyles(order.status)}`}
+                                                        style={{
+                                                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                                            backgroundRepeat: 'no-repeat',
+                                                            backgroundPosition: 'right 12px center',
+                                                            backgroundSize: '12px'
+                                                        }}
+                                                    >
+                                                        <option value="pending">Pending</option>
+                                                        <option value="processing">Processing</option>
+                                                        <option value="shipped">Shipped</option>
+                                                        <option value="delivered">Delivered</option>
+                                                        <option value="cancelled">Cancelled</option>
+                                                    </select>
+                                                    {isUpdatingStatus === order.id && (
+                                                        <div className="w-4 h-4 border-2 border-blue-100 border-t-blue-600 rounded-full animate-spin shrink-0" />
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-8 text-right">
+                                                <button
+                                                    onClick={() => openDetails(order)}
+                                                    className="bg-white hover:bg-blue-600 hover:text-white text-blue-600 px-5 py-2.5 rounded-xl border-2 border-blue-50 font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-600/5 transition-all active:scale-95 cursor-pointer"
                                                 >
-                                                    <option value="pending">Pending</option>
-                                                    <option value="processing">Processing</option>
-                                                    <option value="shipped">Shipped</option>
-                                                    <option value="delivered">Delivered</option>
-                                                    <option value="cancelled">Cancelled</option>
-                                                </select>
-                                                {isUpdatingStatus === order.id && (
-                                                    <div className="w-4 h-4 border-2 border-blue-100 border-t-blue-600 rounded-full animate-spin shrink-0" />
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8 text-right">
-                                            <button
-                                                onClick={() => openDetails(order)}
-                                                className="bg-white hover:bg-blue-600 hover:text-white text-blue-600 px-5 py-2.5 rounded-xl border-2 border-blue-50 font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-600/5 transition-all active:scale-95 cursor-pointer"
-                                            >
-                                                Order Details
-                                            </button>
-                                        </td>
-                                    </tr>
+                                                    Order Details
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {order.transaction_id && (
+                                            <tr className="bg-blue-50/20 border-t-0">
+                                                <td colSpan={6} className="px-8 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-7 h-7 rounded-md bg-blue-100 flex items-center justify-center">
+                                                            <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12l2 2 4-4" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-[13px] font-black text-blue-600 uppercase tracking-widest leading-none">Transaction Verified</span>
+                                                        <div className="h-3 w-[1px] bg-blue-200 ml-1" />
+                                                        <span className="text-[13px] font-bold text-gray-500 tabular-nums uppercase leading-none">Transaction ID: #{order.transaction_id}</span>
+                                                        <span className="ml-auto text-[13px] font-bold text-gray-400 uppercase italic">Paid via {order.payment_type}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
                                 ))
                             )}
                         </tbody>
@@ -402,14 +426,21 @@ export default function OrdersPage() {
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer Details</p>
-                                        <p className="font-bold text-gray-900">User ID: #{selectedOrder.user || 'Guest'}</p>
-                                        <p className="text-sm text-gray-500 font-medium">Payment: {selectedOrder.payment_type.toUpperCase()}</p>
+                                        <p className="text-[13px] font-black text-gray-400 uppercase tracking-widest">Customer Details</p>
+                                        <p className="text-[13px] font-bold text-gray-900">User ID: #{selectedOrder.user || 'Guest'}</p>
+                                        <div className="flex flex-col gap-2">
+                                            <p className="text-[13px] text-gray-500 font-medium">Payment: {selectedOrder.payment_type.toUpperCase()}</p>
+                                            {selectedOrder.transaction_id && (
+                                                <p className="text-[13px] font-black text-blue-500 uppercase tracking-wider bg-blue-50 w-fit px-2 py-0.5 rounded-md">
+                                                    Transaction ID: #{selectedOrder.transaction_id}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Shipping Address</p>
+                                        <p className="text-[13px] font-black text-gray-400 uppercase tracking-widest">Shipping Address</p>
                                         {selectedOrder.address ? (
-                                            <p className="text-sm text-gray-700 font-bold leading-snug">
+                                            <p className="text-[13px] text-gray-700 font-bold leading-snug">
                                                 {selectedOrder.address.street},<br />
                                                 {selectedOrder.address.city}, {selectedOrder.address.state} {selectedOrder.address.zip_code}
                                             </p>
@@ -422,7 +453,7 @@ export default function OrdersPage() {
 
                             <div className="flex-1 overflow-y-auto p-8 space-y-6">
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Order Items ({selectedOrder.items.length})</p>
+                                    <p className="text-[13px] font-black text-gray-400 uppercase tracking-widest px-1">Order Items ({selectedOrder.items.length})</p>
                                     <div className="space-y-3">
                                         {selectedOrder.items.map((item, idx) => (
                                             <div key={idx} className="flex items-center gap-4 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm group hover:shadow-md transition-all">
@@ -436,7 +467,7 @@ export default function OrdersPage() {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="font-black text-gray-900 truncate">{item.product?.title}</h4>
-                                                    <p className="text-xs text-blue-600 font-bold">Qty: {item.quantity} × ${parseFloat(item.price).toFixed(2)}</p>
+                                                    <p className="text-[13px] text-blue-600 font-bold">Qty: {item.quantity} × ${parseFloat(item.price).toFixed(2)}</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="font-black text-gray-900 tracking-tight">${parseFloat(item.total_price).toFixed(2)}</p>
@@ -456,7 +487,7 @@ export default function OrdersPage() {
                                 {selectedOrder.status === 'cancelled' && selectedOrder.cancelled_reason && (
                                     <div className="mt-6 p-6 bg-rose-50 rounded-[2rem] border border-rose-100">
                                         <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">Cancellation Reason</p>
-                                        <p className="text-rose-600 font-bold text-sm italic">"{selectedOrder.cancelled_reason}"</p>
+                                        <p className="text-rose-600 font-bold text-sm italic">{selectedOrder.cancelled_reason}</p>
                                     </div>
                                 )}
                             </div>

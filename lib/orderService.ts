@@ -31,6 +31,7 @@ export interface Order {
     address: OrderAddress | null;
     payment_type: string;
     cancelled_reason: string | null;
+    transaction_id: number | null;
 }
 
 export interface OrdersResponse {
