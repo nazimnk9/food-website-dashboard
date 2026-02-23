@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Table,
@@ -21,71 +21,142 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-
-interface User {
-    id: string
-    name: string
-    email: string
-    role: 'Admin' | 'Manager' | 'Staff'
-    status: 'Active' | 'Inactive'
-}
-
-const initialUsers: User[] = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', role: 'Admin', status: 'Active' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'Manager', status: 'Active' },
-    { id: '3', name: 'Bob Johnson', email: 'bob@example.com', role: 'Staff', status: 'Inactive' },
-]
+import { getUsers, createUser, updateUser, deleteUser, User } from '@/lib/userService'
+import { Loader2 } from 'lucide-react'
 
 export default function SettingsPage() {
-    const [users, setUsers] = useState<User[]>(initialUsers)
+    const [users, setUsers] = useState<User[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [currentUser, setCurrentUser] = useState<User | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [apiError, setApiError] = useState<string | null>(null)
+    const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false)
+
     const [formData, setFormData] = useState({
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
-        role: 'Staff' as User['role'],
-        status: 'Active' as User['status'],
+        phone: '',
+        password: '',
+        role: 'ADMIN' as User['role'],
     })
 
-    const handleAddUser = (e: React.FormEvent) => {
-        e.preventDefault()
-        const newUser: User = {
-            id: Math.random().toString(36).substr(2, 9),
-            ...formData,
+    useEffect(() => {
+        fetchUsers()
+    }, [])
+
+    const fetchUsers = async () => {
+        try {
+            setIsLoading(true)
+            const data = await getUsers()
+            setUsers(data.results)
+            setError(null)
+        } catch (err) {
+            console.error('Error fetching users:', err)
+            setError('Failed to load users. Please try again.')
+        } finally {
+            setIsLoading(false)
         }
-        setUsers([...users, newUser])
-        setIsAddDialogOpen(false)
-        setFormData({ name: '', email: '', role: 'Staff', status: 'Active' })
     }
 
-    const handleUpdateUser = (e: React.FormEvent) => {
+    const parseApiError = (err: any): string => {
+        if (typeof err === 'string') return err;
+        if (err && typeof err === 'object') {
+            const keys = Object.keys(err);
+            if (keys.length > 0) {
+                const firstKey = keys[0];
+                const firstValue = err[firstKey];
+                if (Array.isArray(firstValue) && firstValue.length > 0) {
+                    return `${firstValue[0]}`;
+                }
+                if (typeof firstValue === 'string') return firstValue;
+            }
+        }
+        return 'An unexpected error occurred. Please try again.';
+    }
+
+    const handleAddUser = async (e: React.FormEvent) => {
+        e.preventDefault()
+        try {
+            setIsSubmitting(true)
+            await createUser({ ...formData, role: 'ADMIN' })
+            setIsAddDialogOpen(false)
+            setFormData({ first_name: '', last_name: '', email: '', phone: '', password: '', role: 'ADMIN' })
+            fetchUsers()
+        } catch (err: any) {
+            console.error('Error creating user:', err)
+            setApiError(parseApiError(err))
+            setIsErrorDialogOpen(true)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleUpdateUser = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentUser) return
-        const updatedUsers = users.map((u) =>
-            u.id === currentUser.id ? { ...u, ...formData } : u
-        )
-        setUsers(updatedUsers)
-        setIsEditDialogOpen(false)
-        setCurrentUser(null)
-        setFormData({ name: '', email: '', role: 'Staff', status: 'Active' })
+        try {
+            setIsSubmitting(true)
+            const updateData: Partial<User> = {}
+
+            if (formData.first_name !== currentUser.first_name) updateData.first_name = formData.first_name
+            if (formData.last_name !== currentUser.last_name) updateData.last_name = formData.last_name
+            if (formData.email !== currentUser.email) updateData.email = formData.email
+            if (formData.phone !== currentUser.phone) updateData.phone = formData.phone
+            if (formData.password) updateData.password = formData.password
+
+            // If no fields changed, just close the dialog
+            if (Object.keys(updateData).length === 0) {
+                setIsEditDialogOpen(false)
+                setCurrentUser(null)
+                setFormData({ first_name: '', last_name: '', email: '', phone: '', password: '', role: 'ADMIN' })
+                return
+            }
+
+            await updateUser(currentUser.id, updateData)
+            setIsEditDialogOpen(false)
+            setCurrentUser(null)
+            setFormData({ first_name: '', last_name: '', email: '', phone: '', password: '', role: 'ADMIN' })
+            fetchUsers()
+        } catch (err: any) {
+            console.error('Error updating user:', err)
+            setApiError(parseApiError(err))
+            setIsErrorDialogOpen(true)
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
-    const handleDeleteUser = () => {
+    const handleDeleteUser = async () => {
         if (!currentUser) return
-        setUsers(users.filter((u) => u.id !== currentUser.id))
-        setIsDeleteDialogOpen(false)
-        setCurrentUser(null)
+        try {
+            setIsSubmitting(true)
+            await deleteUser(currentUser.id)
+            setIsDeleteDialogOpen(false)
+            setCurrentUser(null)
+            fetchUsers()
+        } catch (err: any) {
+            console.error('Error deleting user:', err)
+            setApiError(parseApiError(err))
+            setIsErrorDialogOpen(true)
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     const openEditDialog = (user: User) => {
         setCurrentUser(user)
         setFormData({
-            name: user.name,
+            first_name: user.first_name,
+            last_name: user.last_name,
             email: user.email,
-            role: user.role,
-            status: user.status,
+            phone: user.phone,
+            password: '',
+            role: 'ADMIN',
         })
         setIsEditDialogOpen(true)
     }
@@ -104,7 +175,7 @@ export default function SettingsPage() {
                 </div>
                 <Button
                     onClick={() => {
-                        setFormData({ name: '', email: '', role: 'Staff', status: 'Active' });
+                        setFormData({ first_name: '', last_name: '', email: '', phone: '', password: '', role: 'ADMIN' });
                         setIsAddDialogOpen(true);
                     }}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -113,32 +184,45 @@ export default function SettingsPage() {
                 </Button>
             </div>
 
+            {error && (
+                <div className="bg-red-50 border border-red-100 p-4 rounded-lg text-red-700 text-sm">
+                    {error}
+                </div>
+            )}
+
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>Name</TableHead>
                             <TableHead>Email</TableHead>
+                            <TableHead>Phone</TableHead>
                             <TableHead>Role</TableHead>
-                            <TableHead>Status</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users.map((user) => (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-32 text-center text-gray-500">
+                                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                                    Loading users...
+                                </TableCell>
+                            </TableRow>
+                        ) : users.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-32 text-center text-gray-500">
+                                    No users found.
+                                </TableCell>
+                            </TableRow>
+                        ) : users.map((user) => (
                             <TableRow key={user.id}>
-                                <TableCell className="font-medium">{user.name}</TableCell>
+                                <TableCell className="font-medium">{user.first_name} {user.last_name}</TableCell>
                                 <TableCell>{user.email}</TableCell>
+                                <TableCell>{user.phone}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className="font-medium text-xs">
                                         {user.role}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge
-                                        className={user.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}
-                                    >
-                                        {user.status}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -167,6 +251,28 @@ export default function SettingsPage() {
                 </Table>
             </div>
 
+            {/* Error Alert Dialog */}
+            <Dialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-red-600 flex items-center gap-2">
+                            <span>Operation Failed</span>
+                        </DialogTitle>
+                        <DialogDescription className="text-gray-600 pt-2">
+                            {apiError}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setIsErrorDialogOpen(false)}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            Understood
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Add User Dialog */}
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
@@ -176,15 +282,27 @@ export default function SettingsPage() {
                             <DialogDescription>Create a new team member account here.</DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="John Doe"
-                                    required
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="first_name">First Name</Label>
+                                    <Input
+                                        id="first_name"
+                                        value={formData.first_name}
+                                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                        placeholder="Md. Nazim"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="last_name">Last Name</Label>
+                                    <Input
+                                        id="last_name"
+                                        value={formData.last_name}
+                                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                        placeholder="Ahmed"
+                                        required
+                                    />
+                                </div>
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email</Label>
@@ -193,30 +311,38 @@ export default function SettingsPage() {
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="john@example.com"
+                                    placeholder="nazim@example.com"
                                     required
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="role">Role</Label>
-                                <select
-                                    id="role"
-                                    value={formData.role}
-                                    onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
-                                    className="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2"
-                                >
-                                    <option value="Admin">Admin</option>
-                                    <option value="Manager">Manager</option>
-                                    <option value="Staff">Staff</option>
-                                </select>
+                                <Label htmlFor="phone">Phone</Label>
+                                <Input
+                                    id="phone"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    placeholder="+8801..."
+                                    required
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    placeholder="••••••••"
+                                    required
+                                />
                             </div>
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-                                Create User
+                            <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                {isSubmitting ? 'Creating...' : 'Create User'}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -232,14 +358,25 @@ export default function SettingsPage() {
                             <DialogDescription>Update the details of the team member.</DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="edit-name">Name</Label>
-                                <Input
-                                    id="edit-name"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    required
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-first_name">First Name</Label>
+                                    <Input
+                                        id="edit-first_name"
+                                        value={formData.first_name}
+                                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-last_name">Last Name</Label>
+                                    <Input
+                                        id="edit-last_name"
+                                        value={formData.last_name}
+                                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                        required
+                                    />
+                                </div>
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="edit-email">Email</Label>
@@ -252,37 +389,31 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-role">Role</Label>
-                                <select
-                                    id="edit-role"
-                                    value={formData.role}
-                                    onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
-                                    className="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2"
-                                >
-                                    <option value="Admin">Admin</option>
-                                    <option value="Manager">Manager</option>
-                                    <option value="Staff">Staff</option>
-                                </select>
+                                <Label htmlFor="edit-phone">Phone</Label>
+                                <Input
+                                    id="edit-phone"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    required
+                                />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-status">Status</Label>
-                                <select
-                                    id="edit-status"
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value as User['status'] })}
-                                    className="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2"
-                                >
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
+                                <Label htmlFor="edit-password">Password (Optional)</Label>
+                                <Input
+                                    id="edit-password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    placeholder="Leave blank to keep current"
+                                />
                             </div>
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-                                Save Changes
+                            <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                {isSubmitting ? 'Saving...' : 'Save Changes'}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -295,15 +426,15 @@ export default function SettingsPage() {
                     <DialogHeader>
                         <DialogTitle className="text-red-600">Delete User</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete <strong>{currentUser?.name}</strong>? This action cannot be undone.
+                            Are you sure you want to delete <strong>{currentUser?.first_name} {currentUser?.last_name}</strong>? This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <DialogFooter className="gap-2 sm:gap-2">
                         <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700 text-white">
-                            Delete User
+                        <Button onClick={handleDeleteUser} disabled={isSubmitting} className="bg-red-600 hover:bg-red-700 text-white">
+                            {isSubmitting ? 'Deleting...' : 'Delete User'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
