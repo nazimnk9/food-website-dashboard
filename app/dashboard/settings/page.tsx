@@ -22,7 +22,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { getUsers, createUser, updateUser, deleteUser, User } from '@/lib/userService'
-import { Loader2 } from 'lucide-react'
+import { getMe } from '@/lib/auth'
+import { Loader2, ShieldAlert } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function SettingsPage() {
     const [users, setUsers] = useState<User[]>([])
@@ -45,9 +47,29 @@ export default function SettingsPage() {
         role: 'ADMIN' as User['role'],
     })
 
+    const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+    const router = useRouter()
+
     useEffect(() => {
-        fetchUsers()
+        checkAccess()
     }, [])
+
+    const checkAccess = async () => {
+        try {
+            const user = await getMe()
+            if (user.role === 'SUPER_ADMIN') {
+                setIsAdmin(true)
+                fetchUsers()
+            } else {
+                setIsAdmin(false)
+                setIsLoading(false)
+            }
+        } catch (err) {
+            console.error('Error checking access:', err)
+            setIsAdmin(false)
+            setIsLoading(false)
+        }
+    }
 
     const fetchUsers = async () => {
         try {
@@ -164,6 +186,29 @@ export default function SettingsPage() {
     const openDeleteDialog = (user: User) => {
         setCurrentUser(user)
         setIsDeleteDialogOpen(true)
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+        )
+    }
+
+    if (isAdmin === false) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+                <ShieldAlert className="w-16 h-16 text-red-500" />
+                <h2 className="text-2xl font-bold text-gray-900">Access Denied</h2>
+                <p className="text-gray-600 text-center max-w-md">
+                    You do not have permission to access this page. This area is restricted to Super Administrators only.
+                </p>
+                <Button onClick={() => router.push('/dashboard')} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    Return to Dashboard
+                </Button>
+            </div>
+        )
     }
 
     return (

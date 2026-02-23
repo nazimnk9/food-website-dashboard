@@ -7,7 +7,7 @@ export interface User {
     email: string;
     phone: string;
     password?: string;
-    role: 'ADMIN' | 'MANAGER' | 'STAFF' | null;
+    role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'STAFF' | null;
 }
 
 export interface UsersResponse {

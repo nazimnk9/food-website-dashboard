@@ -38,3 +38,20 @@ export async function login(data: any) {
 
     return result;
 }
+
+export async function getMe() {
+    const accessToken = getCookie('access_token');
+    const response = await fetch(`${BASE_URL}/me/`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+        },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw result;
+    }
+
+    return result;
+}

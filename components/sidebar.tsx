@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useContext, createContext, ReactNode } from 'react'
-import { removeCookie } from '@/lib/auth'
+import { removeCookie, getMe } from '@/lib/auth'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useEffect } from 'react'
 
 interface NavItem {
   name: string
@@ -106,6 +107,19 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['Menu Items'])
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const user = await getMe()
+        setUserRole(user.role)
+      } catch (error) {
+        console.error('Error fetching user role:', error)
+      }
+    }
+    fetchUserRole()
+  }, [])
 
   const handleLogout = () => {
     setIsLogoutDialogOpen(true)
@@ -266,21 +280,23 @@ export default function Sidebar() {
           {/* Bottom Navigation */}
           <div className="px-4 py-4 space-y-2 border-t border-white/50">
             {/* Settings */}
-            <Link
-              href="/dashboard/settings"
-              onClick={() => setIsMobileOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${pathname === '/dashboard/settings'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                } ${isCollapsed && 'lg:justify-center'}`}
-            >
-              <span className={`flex-shrink-0 ${pathname === '/dashboard/settings' ? 'text-white' : 'group-hover:text-blue-400'}`}>
-                <svg className="w-5 h-5 font-bold" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.62l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.48.1.62l2.03 1.58c-.05.3-.07.62-.07.94 0 .33.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.62l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.48-.1-.62l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-                </svg>
-              </span>
-              {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
-            </Link>
+            {userRole === 'SUPER_ADMIN' && (
+              <Link
+                href="/dashboard/settings"
+                onClick={() => setIsMobileOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${pathname === '/dashboard/settings'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  } ${isCollapsed && 'lg:justify-center'}`}
+              >
+                <span className={`flex-shrink-0 ${pathname === '/dashboard/settings' ? 'text-white' : 'group-hover:text-blue-400'}`}>
+                  <svg className="w-5 h-5 font-bold" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.62l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.48.1.62l2.03 1.58c-.05.3-.07.62-.07.94 0 .33.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.62l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.48-.1-.62l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                  </svg>
+                </span>
+                {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
+              </Link>
+            )}
 
             {/* Logout */}
             <button
