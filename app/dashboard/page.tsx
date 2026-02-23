@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { StatCard } from '@/components/stat-card'
 import {
   BarChart,
@@ -15,47 +16,95 @@ import {
   Cell,
 } from 'recharts'
 import Image from 'next/image'
+import { getCookie } from '@/lib/auth'
+import { getDashboardStats, getMe, getRecentOrders, Order } from '@/lib/services/dashboardService'
+import { Skeleton } from '@/components/ui/skeleton'
 
-const revenueData = [
-  { month: 'Jan', revenue: 4500 },
-  { month: 'Feb', revenue: 5200 },
-  { month: 'Mar', revenue: 4800 },
-  { month: 'Apr', revenue: 6100 },
-  { month: 'May', revenue: 5900 },
-  { month: 'Jun', revenue: 7230 },
-]
+// const revenueData = [
+//   { month: 'Jan', revenue: 4500 },
+//   { month: 'Feb', revenue: 5200 },
+//   { month: 'Mar', revenue: 4800 },
+//   { month: 'Apr', revenue: 6100 },
+//   { month: 'May', revenue: 5900 },
+//   { month: 'Jun', revenue: 7230 },
+// ]
 
-const orderTrendData = [
-  { day: 'Mon', orders: 45 },
-  { day: 'Tue', orders: 52 },
-  { day: 'Wed', orders: 38 },
-  { day: 'Thu', orders: 65 },
-  { day: 'Fri', orders: 85 },
-  { day: 'Sat', orders: 110 },
-  { day: 'Sun', orders: 95 },
-]
+// const orderTrendData = [
+//   { day: 'Mon', orders: 45 },
+//   { day: 'Tue', orders: 52 },
+//   { day: 'Wed', orders: 38 },
+//   { day: 'Thu', orders: 65 },
+//   { day: 'Fri', orders: 85 },
+//   { day: 'Sat', orders: 110 },
+//   { day: 'Sun', orders: 95 },
+// ]
 
-const recentOrders = [
-  { id: '#ORD-001', customer: 'Ahmad Hassan', item: 'Margherita Pizza', price: 24.99, status: 'Delivered', time: '10 mins ago' },
-  { id: '#ORD-002', customer: 'Fatima Ali', item: 'Double Cheeseburger', price: 15.50, status: 'Cooking', time: '15 mins ago' },
-  { id: '#ORD-003', customer: 'Mohammed Khan', item: 'California Roll', price: 28.00, status: 'Pending', time: '20 mins ago' },
-  { id: '#ORD-004', customer: 'Zainab Ibrahim', item: 'Pesto Pasta', price: 18.50, status: 'Delivered', time: '25 mins ago' },
-  { id: '#ORD-005', customer: 'Omar Ahmed', item: 'Chicken Tikka', price: 22.00, status: 'Cancelled', time: '30 mins ago' },
-]
+// const recentOrders = [
+//   { id: '#ORD-001', customer: 'Ahmad Hassan', item: 'Margherita Pizza', price: 24.99, status: 'Delivered', time: '10 mins ago' },
+//   { id: '#ORD-002', customer: 'Fatima Ali', item: 'Double Cheeseburger', price: 15.50, status: 'Cooking', time: '15 mins ago' },
+//   { id: '#ORD-003', customer: 'Mohammed Khan', item: 'California Roll', price: 28.00, status: 'Pending', time: '20 mins ago' },
+//   { id: '#ORD-004', customer: 'Zainab Ibrahim', item: 'Pesto Pasta', price: 18.50, status: 'Delivered', time: '25 mins ago' },
+//   { id: '#ORD-005', customer: 'Omar Ahmed', item: 'Chicken Tikka', price: 22.00, status: 'Cancelled', time: '30 mins ago' },
+// ]
 
-const topProducts = [
-  { name: 'Margherita Pizza', sales: 450, growth: '+12%', image: 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop' },
-  { name: 'Double Cheeseburger', sales: 380, growth: '+8%', image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?q=80&w=100&auto=format&fit=crop' },
-  { name: 'California Roll', sales: 320, growth: '+5%', image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4111?q=80&w=100&auto=format&fit=crop' },
-]
+// const topProducts = [
+//   { name: 'Margherita Pizza', sales: 450, growth: '+12%', image: 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop' },
+//   { name: 'Double Cheeseburger', sales: 380, growth: '+8%', image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?q=80&w=100&auto=format&fit=crop' },
+//   { name: 'California Roll', sales: 320, growth: '+5%', image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4111?q=80&w=100&auto=format&fit=crop' },
+// ]
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [userEmail, setUserEmail] = useState('')
+  const [userName, setUserName] = useState('')
+  const [stats, setStats] = useState<{
+    total_revenue: number;
+    total_orders: number;
+    active_menu: number;
+  } | null>(null)
+  const [recentOrdersData, setRecentOrdersData] = useState<Order[]>([])
+  const [isOrdersLoading, setIsOrdersLoading] = useState(true)
 
   useEffect(() => {
     const email = localStorage.getItem('userEmail') || 'Admin'
     setUserEmail(email)
+
+    const fetchData = async () => {
+      try {
+        // Fetch User Info using service
+        const userData = await getMe()
+        if (userData) {
+          // Use first_name + last_name as the user name
+          setUserName(userData.first_name + " " + userData.last_name || userData.username.split('@')[0])
+        }
+
+        // Fetch Dashboard Stats using service
+        const statsData = await getDashboardStats()
+        if (statsData) {
+          setStats({
+            total_revenue: statsData.total_revenue,
+            total_orders: statsData.total_orders,
+            active_menu: statsData.active_menu
+          })
+        }
+
+        // Fetch Recent Orders using service
+        setIsOrdersLoading(true)
+        const ordersResponse = await getRecentOrders(1)
+        if (ordersResponse && ordersResponse.results) {
+          // Only show first 5 data
+          setRecentOrdersData(ordersResponse.results.slice(0, 5))
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setIsOrdersLoading(false)
+      }
+    }
+
+    fetchData()
   }, [])
+
 
   return (
     <div className="space-y-8 pb-10">
@@ -65,30 +114,19 @@ export default function DashboardPage() {
           <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
             Dashboard Overview
           </h1>
-          <p className="text-gray-500 mt-1 font-medium">
-            Welcome back, <span className="text-blue-600 font-bold">{userEmail.split('@')[0]}</span>! Here&apos;s what&apos;s happening today.
+          <p className="text-gray-500 mt-1 font-medium flex items-center whitespace-nowrap gap-1">
+            Welcome back, <span className="text-blue-600 font-bold inline-flex items-center">
+              {userName ? userName : (userEmail ? userEmail.split('@')[0] : <span className="h-4 w-24 bg-accent animate-pulse rounded-md" />)}
+            </span>! Here&apos;s what&apos;s happening today.
           </p>
         </div>
-        {/* <div className="flex items-center gap-3">
-          <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-600">
-            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Feb 19, 2026
-          </div>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all duration-200">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-        </div> */}
       </div>
 
       {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="TOTAL REVENUE"
-          value="$12,845.00"
+          value={stats ? `$${stats.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <Skeleton className="h-8 w-24 bg-white/20" />}
           icon={
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16V7" />
@@ -96,12 +134,11 @@ export default function DashboardPage() {
           }
           bgColor="bg-gradient-to-br from-blue-600 to-blue-700"
           textColor="text-white"
-          //trend="12.5%"
           trendPositive={true}
         />
         <StatCard
           title="TOTAL ORDERS"
-          value="1,240"
+          value={stats ? stats.total_orders.toLocaleString() : <Skeleton className="h-8 w-24 bg-white/20" />}
           icon={
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -109,12 +146,11 @@ export default function DashboardPage() {
           }
           bgColor="bg-gradient-to-br from-indigo-600 to-indigo-700"
           textColor="text-white"
-          //trend="8.2%"
           trendPositive={true}
         />
         <StatCard
           title="ACTIVE MENUS"
-          value="156"
+          value={stats ? stats.active_menu.toLocaleString() : <Skeleton className="h-8 w-24 bg-white/20" />}
           icon={
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -122,10 +158,10 @@ export default function DashboardPage() {
           }
           bgColor="bg-gradient-to-br from-emerald-600 to-emerald-700"
           textColor="text-white"
-          //trend="4.1%"
           trendPositive={true}
         />
-        {/* <StatCard
+      </div>
+      {/* <StatCard
           title="HAPPY CUSTOMERS"
           value="8.5k"
           icon={
@@ -138,7 +174,6 @@ export default function DashboardPage() {
           //trend="15%"
           trendPositive={true}
         /> */}
-      </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -249,7 +284,12 @@ export default function DashboardPage() {
               <h2 className="text-xl font-black text-gray-900">Recent Orders</h2>
               <p className="text-sm text-gray-400 font-medium">Monitor latest incoming orders</p>
             </div>
-            <button className="text-sm font-bold text-blue-600 hover:text-blue-700">View All</button>
+            <button
+              onClick={() => router.push('/dashboard/orders')}
+              className="text-sm font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+            >
+              View All
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -263,33 +303,54 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {recentOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="py-4 px-6 text-sm font-bold text-gray-900">{order.id}</td>
-                    <td className="py-4 px-6">
-                      <div className="text-sm font-bold text-gray-900">{order.customer}</div>
-                      <div className="text-[10px] text-gray-400 font-medium">{order.time}</div>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-gray-600 font-medium">{order.item}</td>
-                    <td className="py-4 px-6 text-sm font-black text-gray-900">${order.price.toFixed(2)}</td>
-                    <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
-                          order.status === 'Cooking' ? 'bg-blue-100 text-blue-700' :
-                            order.status === 'Pending' ? 'bg-orange-100 text-orange-700' :
+                {isOrdersLoading && recentOrdersData.length === 0 ? (
+                  // Skeleton loader rows
+                  Array.from({ length: 5 }).map((_, idx) => (
+                    <tr key={`skeleton-${idx}`}>
+                      <td className="py-4 px-6"><Skeleton className="h-4 w-16" /></td>
+                      <td className="py-4 px-6">
+                        <Skeleton className="h-4 w-24 mb-1" />
+                        <Skeleton className="h-3 w-16" />
+                      </td>
+                      <td className="py-4 px-6"><Skeleton className="h-4 w-32" /></td>
+                      <td className="py-4 px-6"><Skeleton className="h-4 w-12" /></td>
+                      <td className="py-4 px-6"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                    </tr>
+                  ))
+                ) : (
+                  recentOrdersData.map((order) => (
+                    <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="py-4 px-6 text-sm font-bold text-gray-900">#ORD-{order.id}</td>
+                      <td className="py-4 px-6">
+                        <div className="text-sm font-bold text-gray-900">User ID: {order.user || 'Guest'}</div>
+                        <div className="text-[10px] text-gray-400 font-medium">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-sm text-gray-600 font-medium">
+                        {order.items.length > 0 ? order.items[0].product.title : 'No Items'}
+                        {order.items.length > 1 && ` (+${order.items.length - 1} more)`}
+                      </td>
+                      <td className="py-4 px-6 text-sm font-black text-gray-900">${parseFloat(order.total_amount).toFixed(2)}</td>
+                      <td className="py-4 px-6">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                          order.status === 'processing' || order.status === 'cooking' ? 'bg-blue-100 text-blue-700' :
+                            order.status === 'pending' ? 'bg-orange-100 text-orange-700' :
                               'bg-red-100 text-red-700'
-                        }`}>
-                        {order.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                          }`}>
+                          {order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
         {/* Top Selling Products */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+        {/* <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-xl font-black text-gray-900 mb-6">Top Selling Items</h2>
           <div className="space-y-6">
             {topProducts.map((product, idx) => (
@@ -312,8 +373,8 @@ export default function DashboardPage() {
           <button className="w-full mt-8 py-4 border-2 border-dashed border-gray-100 rounded-2xl text-sm font-black text-gray-400 hover:border-blue-200 hover:text-blue-600 transition-all">
             View Analytics
           </button>
-        </div>
+        </div> */}
       </div>
-    </div>
+    </div >
   )
 }

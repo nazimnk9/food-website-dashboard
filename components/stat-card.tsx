@@ -1,6 +1,6 @@
 interface StatCardProps {
   title: string
-  value: string | number
+  value: React.ReactNode
   icon: React.ReactNode
   bgColor: string
   textColor: string
