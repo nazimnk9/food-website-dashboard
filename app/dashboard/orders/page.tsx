@@ -31,6 +31,9 @@ export default function OrdersPage() {
     // Details Modal
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+    const [filterStatus, setFilterStatus] = useState<string>('')
+    const [searchQuery, setSearchQuery] = useState('')
+    const [activeSearch, setActiveSearch] = useState('')
 
     // Cancellation Modal
     const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false)
@@ -45,10 +48,10 @@ export default function OrdersPage() {
         isSuccess: false,
     })
 
-    const fetchOrders = useCallback(async (page: number) => {
+    const fetchOrders = useCallback(async (page: number, status: string | null = null, search: string | null = null) => {
         try {
             setIsLoading(true)
-            const data = await getOrders(page)
+            const data = await getOrders(page, status || null, search || null)
             setOrders(data.results)
             setTotalOrders(data.count)
         } catch (err: any) {
@@ -60,8 +63,20 @@ export default function OrdersPage() {
     }, [])
 
     useEffect(() => {
-        fetchOrders(currentPage)
-    }, [fetchOrders, currentPage])
+        fetchOrders(currentPage, filterStatus, activeSearch)
+    }, [fetchOrders, currentPage, filterStatus, activeSearch])
+
+    const handleSearch = () => {
+        setActiveSearch(searchQuery)
+        setCurrentPage(1)
+    }
+
+    const handleReset = () => {
+        setSearchQuery('')
+        setActiveSearch('')
+        setFilterStatus('')
+        setCurrentPage(1)
+    }
 
     const handleStatusChange = async (orderId: number, newStatus: string, reason: string | null = null) => {
         try {
@@ -77,8 +92,8 @@ export default function OrdersPage() {
                 setSelectedOrder(prev => prev ? { ...prev, status: newStatus, cancelled_reason: reason } : null)
             }
 
-            // Refresh list from API
-            fetchOrders(currentPage)
+            // Refresh list from API (keeping current filter)
+            fetchOrders(currentPage, filterStatus, activeSearch)
 
             setAlertConfig({
                 isOpen: true,
@@ -131,6 +146,10 @@ export default function OrdersPage() {
         }
     }
 
+    const getPaymentBorder = (paymentType: string) => {
+        return paymentType.toLowerCase() === 'online' ? 'border-l-4 border-l-indigo-500' : 'border-l-4 border-l-gray-300'
+    }
+
     if (isLoading && orders.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
@@ -151,7 +170,7 @@ export default function OrdersPage() {
                 <h2 className="text-2xl font-black text-gray-900 mb-2">Oops! Something went wrong</h2>
                 <p className="text-gray-500 font-medium mb-8">{error}</p>
                 <button
-                    onClick={() => fetchOrders(currentPage)}
+                    onClick={() => fetchOrders(currentPage, filterStatus, activeSearch)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 transition-all active:scale-95 cursor-pointer"
                 >
                     Try Again
@@ -163,31 +182,74 @@ export default function OrdersPage() {
     return (
         <div className="space-y-8 pb-10">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                 <div>
                     <h1 className="text-4xl font-black text-gray-900 tracking-tight leading-none">Order Management</h1>
                     <p className="text-gray-500 mt-3 font-medium text-lg">
                         You have <span className="text-blue-600 font-bold">{totalOrders}</span> total orders in your system.
                     </p>
                 </div>
-                <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* Reset Button */}
                     <button
-                        onClick={() => fetchOrders(currentPage)}
-                        className="p-3 bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all cursor-pointer group"
-                        title="Refresh Data"
+                        onClick={handleReset}
+                        className="px-6 py-4 rounded-2xl bg-gray-50 text-gray-400 hover:text-blue-600 hover:bg-blue-50 font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 cursor-pointer border border-transparent hover:border-blue-100"
                     >
-                        <svg className={`w-5 h-5 group-active:rotate-180 transition-transform duration-500 ${isLoading ? 'animate-spin text-blue-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
+                        Reset
                     </button>
-                    <div className="h-6 w-[1.5px] bg-gray-100" />
-                    <div className="flex gap-1">
-                        <span className="px-4 py-2 bg-amber-50 text-amber-600 rounded-xl text-xs font-black uppercase tracking-wider">
-                            Pending: {orders.filter(o => o.status === 'pending').length}
-                        </span>
-                        <span className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-black uppercase tracking-wider">
-                            Active: {orders.filter(o => o.status === 'processing').length}
-                        </span>
+
+                    {/* Global Search Input */}
+                    <div className="flex items-center bg-white p-2 rounded-2xl border border-gray-100 shadow-sm gap-2 min-w-[300px]">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            placeholder="Search order ID, transaction..."
+                            className="flex-1 px-4 py-2 bg-transparent outline-none text-sm font-bold text-gray-700 placeholder:text-gray-300"
+                        />
+                        <button
+                            onClick={handleSearch}
+                            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all active:scale-90 cursor-pointer shadow-lg shadow-blue-600/20"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
+                        <button
+                            onClick={() => fetchOrders(currentPage, filterStatus, activeSearch)}
+                            className="p-3 bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all cursor-pointer group"
+                            title="Refresh Data"
+                        >
+                            <svg className={`w-5 h-5 group-active:rotate-180 transition-transform duration-500 ${isLoading ? 'animate-spin text-blue-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                        <div className="h-6 w-[1.5px] bg-gray-100" />
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => {
+                                setFilterStatus(e.target.value);
+                                setCurrentPage(1); // Reset to first page when filter changes
+                            }}
+                            className="appearance-none px-6 py-2 pr-10 rounded-xl text-[11px] font-black uppercase tracking-wider border border-gray-100 bg-gray-50/50 text-gray-600 outline-none cursor-pointer focus:border-blue-100 focus:bg-white transition-all"
+                            style={{
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'right 12px center',
+                                backgroundSize: '12px'
+                            }}
+                        >
+                            <option value="">All Orders</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -224,7 +286,7 @@ export default function OrdersPage() {
                             ) : (
                                 orders.map((order) => (
                                     <React.Fragment key={order.id}>
-                                        <tr className="group hover:bg-blue-50/30 transition-all duration-300">
+                                        <tr className={`group hover:bg-blue-50/30 transition-all duration-300 ${getPaymentBorder(order.payment_type)}`}>
                                             <td className="px-8 py-8">
                                                 <div className="flex flex-col">
                                                     <span className="text-lg font-black text-gray-900 tracking-tight leading-none mb-2 group-hover:text-blue-600 transition-colors">
@@ -343,7 +405,7 @@ export default function OrdersPage() {
                                             </td>
                                         </tr>
                                         {order.transaction_id && (
-                                            <tr className="bg-blue-50/20 border-t-0">
+                                            <tr className={`bg-blue-50/20 border-t-0 ${getPaymentBorder(order.payment_type)}`}>
                                                 <td colSpan={6} className="px-8 py-3">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-7 h-7 rounded-md bg-blue-100 flex items-center justify-center">

@@ -41,9 +41,16 @@ export interface OrdersResponse {
     results: Order[];
 }
 
-export const getOrders = async (page: number = 1): Promise<OrdersResponse> => {
+export const getOrders = async (page: number = 1, status: string | null = null, search: string | null = null): Promise<OrdersResponse> => {
     const accessToken = getCookie('access_token');
-    const response = await fetch(`${BASE_URL}/admin/orders/?page=${page}`, {
+    let url = `${BASE_URL}/admin/orders/?page=${page}`;
+    if (status) {
+        url += `&status=${status}`;
+    }
+    if (search) {
+        url += `&search=${search}`;
+    }
+    const response = await fetch(url, {
         headers: {
             'Authorization': `Bearer ${accessToken}`,
         },
@@ -66,6 +73,22 @@ export const updateOrderStatus = async (id: number | string, status: string, can
             'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ status, cancelled_reason }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw error;
+    }
+
+    return response.json();
+};
+
+export const getOrderById = async (id: number | string): Promise<Order> => {
+    const accessToken = getCookie('access_token');
+    const response = await fetch(`${BASE_URL}/admin/orders/${id}`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+        },
     });
 
     if (!response.ok) {
