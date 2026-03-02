@@ -501,7 +501,7 @@ export default function AllMenusPage() {
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight">Signature Dishes</h1>
                     <p className="text-gray-500 mt-1 font-medium">Explore and curate your restaurant's culinary offerings.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                     {/* Category Filter Dropdown */}
                     <Popover open={openCategoryPopover} onOpenChange={setOpenCategoryPopover}>
                         <PopoverTrigger asChild>
@@ -509,7 +509,7 @@ export default function AllMenusPage() {
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={openCategoryPopover}
-                                className="w-[200px] justify-between rounded-xl border-gray-200 bg-white text-sm font-medium hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm"
+                                className="w-full sm:w-[190px] justify-between rounded-xl border-gray-200 bg-white text-sm font-medium hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm"
                             >
                                 {selectedCategoryId
                                     ? categories.find((category) => category.id.toString() === selectedCategoryId)?.title
@@ -517,7 +517,7 @@ export default function AllMenusPage() {
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0 rounded-xl" align="end">
+                        <PopoverContent className="w-full sm:w-[190px] p-0 rounded-xl" align="start">
                             <Command className="rounded-xl">
                                 <CommandInput placeholder="Search category..." className="h-9" />
                                 <CommandList>
@@ -535,7 +535,7 @@ export default function AllMenusPage() {
                                             <Check
                                                 className={cn(
                                                     "mr-2 h-4 w-4",
-                                                    selectedCategoryId === null ? "opacity-100" : "opacity-0"
+                                                    selectedCategoryId === null ? "opacity-100 text-white" : "opacity-0"
                                                 )}
                                             />
                                             All Categories
@@ -567,11 +567,11 @@ export default function AllMenusPage() {
                             </Command>
                         </PopoverContent>
                     </Popover>
-                    <div className="relative">
+                    <div className="relative w-full sm:w-50">
                         <input
                             type="text"
                             placeholder="Search dishes..."
-                            className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 w-64 shadow-sm"
+                            className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 w-full shadow-sm"
                             value={searchQuery}
                             onChange={(e) => {
                                 const val = e.target.value
@@ -587,7 +587,7 @@ export default function AllMenusPage() {
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl shadow-lg shadow-blue-600/20 transition-all duration-200 flex items-center gap-2"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl shadow-lg shadow-blue-600/20 transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-38 text-sm"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
