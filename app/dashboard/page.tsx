@@ -135,6 +135,7 @@ export default function DashboardPage() {
           bgColor="bg-gradient-to-br from-blue-600 to-blue-700"
           textColor="text-white"
           trendPositive={true}
+          onClick={() => router.push('/dashboard/payments')}
         />
         <StatCard
           title="TOTAL ORDERS"
@@ -147,6 +148,7 @@ export default function DashboardPage() {
           bgColor="bg-gradient-to-br from-indigo-600 to-indigo-700"
           textColor="text-white"
           trendPositive={true}
+          onClick={() => router.push('/dashboard/orders')}
         />
         <StatCard
           title="ACTIVE MENUS"
@@ -159,6 +161,7 @@ export default function DashboardPage() {
           bgColor="bg-gradient-to-br from-emerald-600 to-emerald-700"
           textColor="text-white"
           trendPositive={true}
+          onClick={() => router.push('/dashboard/all-menus')}
         />
       </div>
       {/* <StatCard

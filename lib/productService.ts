@@ -48,8 +48,12 @@ export interface CreateProductData {
     status?: string | null;
 }
 
-export const getProducts = async (page: number = 1): Promise<ProductsResponse> => {
-    const response = await fetch(`${BASE_URL}/menu/products/?page=${page}`);
+export const getProducts = async (page: number = 1, search: string = '', categoryId: number | string = ''): Promise<ProductsResponse> => {
+    let url = `${BASE_URL}/menu/products/?page=${page}`;
+    if (search) url += `&search=${search}`;
+    if (categoryId) url += `&category__id=${categoryId}`;
+
+    const response = await fetch(url);
     if (!response.ok) {
         throw new Error('Failed to fetch products');
     }

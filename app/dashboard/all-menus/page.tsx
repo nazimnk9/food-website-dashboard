@@ -28,6 +28,22 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover'
 
 export default function AllMenusPage() {
     const [products, setProducts] = useState<Product[]>([])
@@ -90,10 +106,28 @@ export default function AllMenusPage() {
         isSuccess: false,
     })
 
-    const fetchProducts = async (page: number) => {
+    const [searchQuery, setSearchQuery] = useState('')
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+    const [openCategoryPopover, setOpenCategoryPopover] = useState(false)
+
+    // Debounce search query
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery)
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [searchQuery])
+
+    // Reset page to 1 on search or category change
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [debouncedSearchQuery, selectedCategoryId])
+
+    const fetchProducts = async (page: number, search: string = '', categoryId: string | number = '') => {
         setLoading(true)
         try {
-            const data: ProductsResponse = await getProducts(page)
+            const data: ProductsResponse = await getProducts(page, search, categoryId)
             setProducts(data.results)
             setTotalCount(data.count)
             setError(null)
@@ -133,7 +167,10 @@ export default function AllMenusPage() {
     }
 
     useEffect(() => {
-        fetchProducts(currentPage)
+        // Only one of them will be active due to logic in handlers, 
+        // but we pass both to maintain the signature, or we could refactor fetchProducts.
+        // For simplicity with existing signatures, we pass them both.
+        fetchProducts(currentPage, debouncedSearchQuery, selectedCategoryId || '')
         // Load IDs from local storage
         const savedImageIds = localStorage.getItem('pending_image_ids')
         if (savedImageIds) {
@@ -153,7 +190,7 @@ export default function AllMenusPage() {
         fetchPreviewImages()
         fetchCategories()
         fetchTags()
-    }, [currentPage])
+    }, [currentPage, debouncedSearchQuery, selectedCategoryId])
 
     const totalPages = Math.ceil(totalCount / itemsPerPage)
 
@@ -259,7 +296,7 @@ export default function AllMenusPage() {
             localStorage.removeItem('pending_image_ids')
             localStorage.removeItem('pending_category_ids')
             localStorage.removeItem('pending_tag_ids')
-            fetchProducts(currentPage)
+            fetchProducts(currentPage, debouncedSearchQuery, selectedCategoryId || '')
         } catch (err: any) {
             console.error('Error creating product:', err)
             let errorMessage = 'Failed to create menu item.\n'
@@ -398,7 +435,7 @@ export default function AllMenusPage() {
             })
 
             setIsUpdateModalOpen(false)
-            fetchProducts(currentPage)
+            fetchProducts(currentPage, debouncedSearchQuery, selectedCategoryId || '')
         } catch (err: any) {
             console.error('Update error:', err)
             let errorMessage = 'Failed to update menu item.'
@@ -441,7 +478,7 @@ export default function AllMenusPage() {
                 isSuccess: true,
             })
             setIsDeleteModalOpen(false)
-            fetchProducts(currentPage)
+            fetchProducts(currentPage, debouncedSearchQuery, selectedCategoryId || '')
         } catch (err: any) {
             console.error('Delete error:', err)
             setAlertConfig({
@@ -465,11 +502,84 @@ export default function AllMenusPage() {
                     <p className="text-gray-500 mt-1 font-medium">Explore and curate your restaurant's culinary offerings.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {/* Category Filter Dropdown */}
+                    <Popover open={openCategoryPopover} onOpenChange={setOpenCategoryPopover}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openCategoryPopover}
+                                className="w-[200px] justify-between rounded-xl border-gray-200 bg-white text-sm font-medium hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm"
+                            >
+                                {selectedCategoryId
+                                    ? categories.find((category) => category.id.toString() === selectedCategoryId)?.title
+                                    : "All Categories"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0 rounded-xl" align="end">
+                            <Command className="rounded-xl">
+                                <CommandInput placeholder="Search category..." className="h-9" />
+                                <CommandList>
+                                    <CommandEmpty>No category found.</CommandEmpty>
+                                    <CommandGroup>
+                                        <CommandItem
+                                            key="all"
+                                            value="all"
+                                            onSelect={() => {
+                                                setSelectedCategoryId(null)
+                                                setOpenCategoryPopover(false)
+                                            }}
+                                            className="font-bold text-gray-900"
+                                        >
+                                            <Check
+                                                className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    selectedCategoryId === null ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            All Categories
+                                        </CommandItem>
+                                        {categories.map((category) => (
+                                            <CommandItem
+                                                key={category.id}
+                                                value={category.title}
+                                                onSelect={() => {
+                                                    const newCategoryId = category.id.toString() === selectedCategoryId ? null : category.id.toString()
+                                                    setSelectedCategoryId(newCategoryId)
+                                                    if (newCategoryId) {
+                                                        setSearchQuery('')
+                                                    }
+                                                    setOpenCategoryPopover(false)
+                                                }}
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        selectedCategoryId === category.id.toString() ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {category.title}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                     <div className="relative">
                         <input
                             type="text"
                             placeholder="Search dishes..."
                             className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 w-64 shadow-sm"
+                            value={searchQuery}
+                            onChange={(e) => {
+                                const val = e.target.value
+                                setSearchQuery(val)
+                                if (val) {
+                                    setSelectedCategoryId(null)
+                                }
+                            }}
                         />
                         <svg className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

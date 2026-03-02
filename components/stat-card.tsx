@@ -6,6 +6,7 @@ interface StatCardProps {
   textColor: string
   trend?: string
   trendPositive?: boolean
+  onClick?: () => void
 }
 
 export function StatCard({
@@ -16,9 +17,13 @@ export function StatCard({
   textColor,
   trend,
   trendPositive,
+  onClick,
 }: StatCardProps) {
   return (
-    <div className={`${bgColor} rounded-2xl p-6 text-white shadow-lg`}>
+    <div
+      className={`${bgColor} rounded-2xl p-6 text-white shadow-lg ${onClick ? 'cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="text-sm font-medium opacity-90">{title}</p>
