@@ -168,7 +168,7 @@ export default function Sidebar() {
 
         {/* Sidebar */}
         <aside
-          className={`fixed left-0 top-0 h-screen bg-gray-900 text-white transition-all duration-300 ease-in-out z-40 lg:z-0 border-r border-gray-800 ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'
+          className={`fixed left-0 top-0 h-screen bg-gray-900 text-white transition-all duration-300 ease-in-out z-40 lg:z-0 border-r border-gray-800 flex flex-col ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'
             } lg:translate-x-0 ${isCollapsed ? 'lg:w-24' : 'lg:w-64'}`}
         >
           {/* Logo Section */}
@@ -209,7 +209,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
+          <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
             {navItems.map((item) => {
               const isActive = pathname === item.href
               const hasSubItems = item.subItems && item.subItems.length > 0
