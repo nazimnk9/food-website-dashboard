@@ -21,6 +21,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { getUsers, createUser, updateUser, deleteUser, User } from '@/lib/userService'
 import { getMe } from '@/lib/auth'
 import { Loader2, ShieldAlert } from 'lucide-react'
@@ -105,7 +112,7 @@ export default function SettingsPage() {
         e.preventDefault()
         try {
             setIsSubmitting(true)
-            await createUser({ ...formData, role: 'ADMIN' })
+            await createUser(formData)
             setIsAddDialogOpen(false)
             setFormData({ first_name: '', last_name: '', email: '', phone: '', password: '', role: 'ADMIN' })
             fetchUsers()
@@ -129,6 +136,7 @@ export default function SettingsPage() {
             if (formData.last_name !== currentUser.last_name) updateData.last_name = formData.last_name
             if (formData.email !== currentUser.email) updateData.email = formData.email
             if (formData.phone !== currentUser.phone) updateData.phone = formData.phone
+            if (formData.role !== currentUser.role) updateData.role = formData.role
             if (formData.password) updateData.password = formData.password
 
             // If no fields changed, just close the dialog
@@ -178,7 +186,7 @@ export default function SettingsPage() {
             email: user.email,
             phone: user.phone,
             password: '',
-            role: 'ADMIN',
+            role: user.role,
         })
         setIsEditDialogOpen(true)
     }
@@ -381,6 +389,21 @@ export default function SettingsPage() {
                                     required
                                 />
                             </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="role">Role</Label>
+                                <Select
+                                    value={formData.role || 'ADMIN'}
+                                    onValueChange={(value: string) => setFormData({ ...formData, role: value as User['role'] })}
+                                >
+                                    <SelectTrigger id="role">
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ADMIN">Admin</SelectItem>
+                                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -451,6 +474,21 @@ export default function SettingsPage() {
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     placeholder="Leave blank to keep current"
                                 />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-role">Role</Label>
+                                <Select
+                                    value={formData.role || 'ADMIN'}
+                                    onValueChange={(value: string) => setFormData({ ...formData, role: value as User['role'] })}
+                                >
+                                    <SelectTrigger id="edit-role">
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ADMIN">Admin</SelectItem>
+                                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                         <DialogFooter>

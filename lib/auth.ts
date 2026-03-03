@@ -22,7 +22,7 @@ export function removeCookie(name: string) {
 }
 
 export async function login(data: any) {
-    const response = await fetch(`${BASE_URL}/token`, {
+    const response = await fetch(`${BASE_URL}/admin/token/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
